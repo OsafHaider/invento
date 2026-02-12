@@ -2,13 +2,13 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload } from "../types/index.js";
 export const generateAccessToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
-    expiresIn: "5m",
+    expiresIn: "15m",
   });
 };
 
 export const generateRefreshToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
-    expiresIn: "30m",
+    expiresIn: "7d",
   });
 };
 export const verifyAccessToken = (token: string): JwtPayload | null => {

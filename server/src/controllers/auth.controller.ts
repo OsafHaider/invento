@@ -8,8 +8,8 @@ import {
   verifyRefreshToken,
 } from "../lib/jwt.js";
 const saltRounds = 10;
-// 30 minutes (matches JWT refresh token expiry)
-const REFRESH_TOKEN_EXPIRY = 30 * 60 * 1000;
+// 7day (matches JWT refresh token expiry)
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000;
 
 const cookieOptions = {
   httpOnly: true,
@@ -46,7 +46,7 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
         name: newUser.name,
         createdAt: newUser.createdAt,
         updatedAt: newUser.updatedAt,
-        role:newUser.role
+        role: newUser.role,
       },
     };
 
@@ -89,7 +89,7 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
     user.refreshToken = refreshToken;
     await user.save();
     res.cookie("refreshToken", refreshToken, cookieOptions);
-    const response: AuthResponse = {
+    const response = {
       accessToken: accessToken,
       user: {
         id: user._id.toString(),
@@ -97,7 +97,8 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        role:user.role
+        role: user.role,
+        refreshToken: user.refreshToken,
       },
     };
 
@@ -174,7 +175,7 @@ export const profile = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        role:user.role
+        role: user.role,
       },
     };
 
