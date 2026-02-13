@@ -339,6 +339,74 @@ Authorization: Bearer {accessToken}
 }
 ```
 
+### Stock Transactions
+
+#### Create Stock Transaction
+```http
+POST /stock
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "productId": "product_id",
+  "type": "IN",
+  "quantity": 50
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Stock transaction created successfully",
+  "transaction": {
+    "_id": "transaction_id",
+    "productId": "product_id",
+    "type": "IN",
+    "quantity": 50,
+    "performedBy": "user_id",
+    "createdAt": "2025-02-14T10:00:00.000Z",
+    "updatedAt": "2025-02-14T10:00:00.000Z"
+  }
+}
+```
+
+**Error Cases:**
+- `404` - Product not found
+- `400` - Insufficient stock for OUT transactions
+
+#### Get Transaction History
+```http
+GET /stock/{productId}?page=1&limit=10
+Authorization: Bearer {accessToken}
+```
+
+**Response (200):**
+```json
+{
+  "transactions": [
+    {
+      "_id": "transaction_id",
+      "productId": "product_id",
+      "type": "IN",
+      "quantity": 50,
+      "performedBy": {
+        "_id": "user_id",
+        "name": "John Doe",
+        "email": "john@example.com"
+      },
+      "createdAt": "2025-02-14T10:00:00.000Z",
+      "updatedAt": "2025-02-14T10:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 15,
+    "page": 1,
+    "limit": 10,
+    "pages": 2
+  }
+}
+```
+
 ## 🧪 Testing
 
 ### Using Postman
