@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { productAPI, Product } from "@/lib/product-api";
+import { StockManagement } from "@/components/modules/stock-transaction";
 
 interface ProductDetailProps {
   productId: string;
@@ -65,7 +66,7 @@ const ProductDetail = ({ productId }: ProductDetailProps) => {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6">
       <Link href="/products" className="text-primary hover:underline text-sm">
         ← Back to Products
       </Link>
@@ -165,6 +166,17 @@ const ProductDetail = ({ productId }: ProductDetailProps) => {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Stock Management Section */}
+      <div className="border-t pt-8">
+        <h2 className="text-2xl font-bold mb-6">Stock Management</h2>
+        <StockManagement
+          product={product}
+          onTransactionSuccess={() => {
+            fetchProduct();
+          }}
+        />
       </div>
     </div>
   );
