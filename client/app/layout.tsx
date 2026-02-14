@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/navbar";
+import localFont from "next/font/local";
 import "./globals.css";
+import { AuthProvider } from "@/context/auth-context";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const sharpFont = localFont({
+  variable: "--font-sharp",
+  src: [
+    { path: "../fonts/SharpGrotesk-Book20.otf", weight: "400" },
+    { path: "../fonts/SharpGrotesk-Medium20.otf", weight: "500" },
+  ],
 });
 
 export const metadata: Metadata = {
@@ -25,11 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar />
-        <main className="w-full overflow-hidden">{children}</main>
+      <body className={sharpFont.className}>
+        <AuthProvider>
+          <Navbar />
+          <main className="w-full overflow-hidden">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

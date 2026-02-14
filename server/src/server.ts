@@ -1,9 +1,8 @@
-import dotenv from "dotenv";
-dotenv.config();
+import { env } from "./config/evn.js";
 import { app } from "./app.js";
 import { connectDB } from "./config/db.js";
 
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = env.PORT;
 const startServer = async () => {
   try {
     // Database Connection

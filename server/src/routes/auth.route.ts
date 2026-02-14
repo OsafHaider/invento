@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   registerSchema,
   loginSchema,
-  refreshTokenSchema,
 } from "../schema/auth.schema.js";
 import { validateBody } from "../middleware/validation.js";
 import {
@@ -17,7 +16,7 @@ const authRouter: Router = Router();
 
 authRouter.post("/sign-up", validateBody(registerSchema), signUp);
 authRouter.post("/sign-in", validateBody(loginSchema), signIn);
-authRouter.post("/refresh", validateBody(refreshTokenSchema), refreshToken);
+authRouter.post("/refresh", refreshToken);
 authRouter.get("/profile", authMiddleware, profile);
 
 export default authRouter;

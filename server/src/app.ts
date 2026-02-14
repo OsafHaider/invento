@@ -1,3 +1,4 @@
+import { env } from "./config/evn.js";
 import express, { type Application, type Response } from "express";
 import authRouter from "./routes/auth.route.js";
 import cookieparser from "cookie-parser";
@@ -12,7 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieparser());
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: env.CLIENT_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
