@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
+import { env } from "./evn.js";
 
 export const connectDB = async (): Promise<void> => {
   try {
-    await mongoose.connect(process.env.DATABASE_URL!);
+    await mongoose.connect(env.DATABASE_URL);
     console.log("MongoDB connected successfully");
   } catch (error) {
     console.error("MongoDB connection failed:", error);

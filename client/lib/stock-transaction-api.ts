@@ -1,7 +1,8 @@
-import { refreshAccessToken, getTokens, clearTokens } from "./auth-api";
+// lib/stock-transaction-api.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { apiFetch } from "./fetch-api-wrapper";
 
+const BACKEND_URL="http://localhost:8080"
 export interface StockTransaction {
   _id: string;
   productId: string;
@@ -32,79 +33,40 @@ export interface CreateTransactionInput {
   quantity: number;
 }
 
-const getAccessToken = () => {
-  if (typeof window === "undefined") return null;
-  const { accessToken } = getTokens();
-  return accessToken;
-};
+// ✅ simple reusable response handler
+async function handleResponse<T>(res: Response | undefined): Promise<T> {
+  if (!res) throw new Error("No response from server");
 
-const handleUnauthorized = async () => {
-  if (typeof window === "undefined") return;
+  const data = await res.json().catch(() => ({}));
 
-  // Try to refresh token first
-  const newToken = await refreshAccessToken();
-  if (!newToken) {
-    clearTokens();
-    window.location.href = "/sign-in";
+  if (!res.ok) {
+    throw new Error(data?.message || "Request failed");
   }
-  return newToken;
-};
+
+  return data as T;
+}
 
 export const stockTransactionAPI = {
   async createTransaction(
-    data: CreateTransactionInput,
+    payload: CreateTransactionInput
   ): Promise<{ message: string; transaction: StockTransaction }> {
-    const token = getAccessToken();
-    const response = await fetch(`${API_BASE_URL}/api/stock`, {
+    const res = await apiFetch(`${BACKEND_URL}/stock`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
-    if (response.status === 401) {
-      handleUnauthorized();
-      throw new Error("Unauthorized");
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to create stock transaction");
-    }
-
-    return response.json();
+    return handleResponse(res);
   },
 
   async getTransactionHistory(
     productId: string,
-    page = 1,
-    limit = 10,
+    page: number = 1,
+    limit: number = 10
   ): Promise<TransactionHistory> {
-    const token = getAccessToken();
-    const response = await fetch(
-      `${API_BASE_URL}/api/stock/${productId}?page=${page}&limit=${limit}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      },
+    const res = await apiFetch(
+      `${BACKEND_URL}/stock/${productId}?page=${page}&limit=${limit}`
     );
 
-    if (response.status === 401) {
-      handleUnauthorized();
-      throw new Error("Unauthorized");
-    }
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch transaction history");
-    }
-
-    return response.json();
+    return handleResponse(res);
   },
 };

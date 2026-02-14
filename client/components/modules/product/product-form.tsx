@@ -1,245 +1,173 @@
 "use client";
-import React from "react";
-import FormInput from "@/components/form-input";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { productAPI, CreateProductInput, Product } from "@/lib/product-api";
+import FormInput from "@/components/form-input";
+import { productAPI, Product } from "@/lib/product-api";
+import { toast } from "sonner";
+import axios from "axios";
 
 interface ProductFormProps {
   initialData?: Product;
   onSuccess?: () => void;
 }
 
-const ProductForm = ({ initialData, onSuccess }: ProductFormProps) => {
-  const [formData, setFormData] = React.useState<CreateProductInput>({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    price: initialData?.price || 0,
-    quantity: initialData?.quantity || 0,
-    category: initialData?.category || "",
-    image: initialData?.image || "",
-    sku_code: initialData?.sku_code || "",
+// ---------------- Schema ----------------
+const productSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Product name is required")
+    .max(100, "Product name must not exceed 100 characters")
+    .trim(),
+
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(500, "Description must not exceed 500 characters")
+    .trim(),
+
+  price: z
+    .number({
+      required_error: "Price is required",
+      invalid_type_error: "Price must be a number",
+    })
+    .positive("Price must be greater than 0"),
+
+  category: z.string().min(1, "Category is required").trim(),
+
+  sku_code: z.string().min(1, "SKU code is required").trim(),
+
+  image: z
+    .string()
+    .url("Image must be a valid URL")
+    .optional()
+    .or(z.literal("")),
+});
+
+type ProductFormValues = z.infer<typeof productSchema>;
+
+export default function ProductForm({
+  initialData,
+  onSuccess,
+}: ProductFormProps) {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      price: initialData?.price ?? 0,
+      category: initialData?.category ?? "",
+      image: initialData?.image ?? "",
+      sku_code: initialData?.sku_code ?? "",
+    },
   });
 
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [apiError, setApiError] = React.useState("");
-  const [successMessage, setSuccessMessage] = React.useState("");
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Product name is required";
-    } else if (formData.name.length > 100) {
-      newErrors.name = "Product name must not exceed 100 characters";
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
-    } else if (formData.description.length < 10) {
-      newErrors.description = "Description must be at least 10 characters";
-    } else if (formData.description.length > 500) {
-      newErrors.description = "Description must not exceed 500 characters";
-    }
-
-    if (!formData.price || formData.price <= 0) {
-      newErrors.price = "Price must be greater than 0";
-    }
-
-    if (formData.quantity < 0) {
-      newErrors.quantity = "Quantity cannot be negative";
-    }
-
-    if (!formData.category.trim()) {
-      newErrors.category = "Category is required";
-    }
-
-    if (!formData.sku_code.trim()) {
-      newErrors.sku_code = "SKU code is required";
-    }
-
-    if (formData.image && !isValidUrl(formData.image)) {
-      newErrors.image = "Image must be a valid URL";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const isValidUrl = (string: string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    const parsedValue =
-      name === "price" || name === "quantity" ? parseFloat(value) : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: parsedValue,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setApiError("");
-    setSuccessMessage("");
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
-
+  const onSubmit = async (data: ProductFormValues) => {
     try {
       if (initialData) {
-        await productAPI.updateProduct(initialData._id, formData);
-        setSuccessMessage("Product updated successfully!");
-      } else {
-        await productAPI.createProduct(formData);
-        setSuccessMessage("Product created successfully!");
-        setFormData({
-          name: "",
-          description: "",
-          price: 0,
-          quantity: 0,
-          category: "",
-          image: "",
-          sku_code: "",
-        });
+        await productAPI.updateProduct(initialData.id, data);
+        toast.success("Product updated successfully");
       }
-
-      setTimeout(() => {
-        onSuccess?.();
-      }, 1500);
+        else {
+          await productAPI.createProduct(data);
+          toast.success("Product created successfully");
+          reset(); // clean reset instead of manual state juggling
+        }
+      onSuccess?.();
     } catch (error) {
-      setApiError(
-        error instanceof Error ? error.message : "An error occurred"
-      );
-    } finally {
-      setIsLoading(false);
+      
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl">
-      {successMessage && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800">
-          {successMessage}
-        </div>
-      )}
-
-      {apiError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
-          {apiError}
-        </div>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-4 max-w-2xl"
+      noValidate
+    >
+      {errors.root && (
+        <div className="text-sm text-red-500">{errors.root.message}</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormInput
           label="Product Name"
           type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
           placeholder="Enter product name"
-          error={errors.name}
-          disabled={isLoading}
+          aria-invalid={!!errors.name}
+          {...register("name")}
+          error={errors.name?.message}
+          disabled={isSubmitting}
         />
 
         <FormInput
           label="Category"
           type="text"
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
           placeholder="e.g., Electronics"
-          error={errors.category}
-          disabled={isLoading}
+          aria-invalid={!!errors.category}
+          {...register("category")}
+          error={errors.category?.message}
+          disabled={isSubmitting}
         />
 
         <FormInput
           label="SKU Code"
           type="text"
-          name="sku_code"
-          value={formData.sku_code}
-          onChange={handleChange}
           placeholder="e.g., SKU-001"
-          error={errors.sku_code}
-          disabled={isLoading}
+          aria-invalid={!!errors.sku_code}
+          {...register("sku_code")}
+          error={errors.sku_code?.message}
+          disabled={isSubmitting}
         />
 
         <FormInput
           label="Price"
           type="number"
-          name="price"
-          value={formData.price}
-          onChange={handleChange}
-          placeholder="0.00"
-          error={errors.price}
-          disabled={isLoading}
           step="0.01"
-        />
-
-        <FormInput
-          label="Quantity"
-          type="number"
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleChange}
-          placeholder="0"
-          error={errors.quantity}
-          disabled={isLoading}
+          aria-invalid={!!errors.price}
+          {...register("price", { valueAsNumber: true })}
+          error={errors.price?.message}
+          disabled={isSubmitting}
         />
 
         <FormInput
           label="Image URL (Optional)"
           type="text"
-          name="image"
-          value={formData.image}
-          onChange={handleChange}
           placeholder="https://example.com/image.jpg"
-          error={errors.image}
-          disabled={isLoading}
+          aria-invalid={!!errors.image}
+          {...register("image")}
+          error={errors.image?.message}
+          disabled={isSubmitting}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium text-foreground">
-          Description
-        </label>
+        <label className="text-sm font-medium">Description</label>
         <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          placeholder="Enter product description"
-          disabled={isLoading}
-          className="w-full px-3 py-2 mt-1 border rounded-md text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 border-input focus:border-primary"
           rows={4}
+          className="w-full px-3 py-2 mt-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          aria-invalid={!!errors.description}
+          {...register("description")}
+          disabled={isSubmitting}
         />
         {errors.description && (
-          <span className="text-xs text-destructive">{errors.description}</span>
+          <span className="text-xs text-destructive">
+            {errors.description.message}
+          </span>
         )}
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={isLoading} className="flex-1">
-          {isLoading
+        <Button type="submit" disabled={isSubmitting} className="flex-1">
+          {isSubmitting
             ? initialData
               ? "Updating..."
               : "Creating..."
@@ -247,11 +175,12 @@ const ProductForm = ({ initialData, onSuccess }: ProductFormProps) => {
               ? "Update Product"
               : "Create Product"}
         </Button>
+
         <Button
           type="button"
           variant="outline"
-          onClick={() => window.history.back()}
-          disabled={isLoading}
+          onClick={() => onSuccess?.()}
+          disabled={isSubmitting}
           className="flex-1"
         >
           Cancel
@@ -259,6 +188,4 @@ const ProductForm = ({ initialData, onSuccess }: ProductFormProps) => {
       </div>
     </form>
   );
-};
-
-export default ProductForm;
+}

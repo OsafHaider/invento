@@ -1,205 +1,68 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { apiFetch } from "./fetch-api-wrapper";
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SignUpData {
-  name: string;
-  email: string;
-  password: string;
-  role?: string;
-}
-
-export interface SignInData {
-  email: string;
-  password: string;
-}
-
-// Get tokens from storage
-export const getTokens = () => {
-  if (typeof window === "undefined") return { accessToken: null, refreshToken: null };
-  
-  const accessToken = localStorage.getItem("accessToken");
-  const user = localStorage.getItem("user");
-  
-  let refreshToken = null;
-  if (user) {
-    try {
-      const userData = JSON.parse(user);
-      refreshToken = userData.refreshToken;
-    } catch (e) {
-      // Error parsing user data
-    }
-  }
-  
-  return { accessToken, refreshToken };
-};
-
-// Set tokens in storage
-const setTokens = (accessToken: string, user: User & { refreshToken: string }) => {
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("user", JSON.stringify(user));
-};
-
-// Clear tokens from storage
-export const clearTokens = () => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("user");
-};
-
-// Check if token is expired (rough estimate)
-const isTokenExpired = (token: string): boolean => {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    
-    const payload = JSON.parse(atob(parts[1]));
-    const expirationTime = payload.exp * 1000; // Convert to milliseconds
-    return Date.now() >= expirationTime;
-  } catch (e) {
-    return true;
-  }
-};
-
-// Refresh access token
-export const refreshAccessToken = async (): Promise<string | null> => {
-  try {
-    const { refreshToken } = getTokens();
-    
-    if (!refreshToken) {
-      clearTokens();
-      window.location.href = "/sign-in";
-      return null;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      clearTokens();
-      window.location.href = "/sign-in";
-      return null;
-    }
-
-    const data = await response.json();
-    const newAccessToken = data.accessToken;
-
-    // Update access token in storage
-    localStorage.setItem("accessToken", newAccessToken);
-
-    return newAccessToken;
-  } catch (error) {
-    console.error("Token refresh error:", error);
-    clearTokens();
-    window.location.href = "/sign-in";
-    return null;
-  }
-};
-
+const BACKEND_URL= "http://localhost:8080"
 export const authAPI = {
-  async signUp(data: SignUpData): Promise<{ user: User; accessToken: string; refreshToken: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/sign-up`, {
+  // 🔐 LOGIN
+  signIn: async (data: { email: string; password: string }) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/sign-in`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
       credentials: "include",
+      body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Sign up failed");
+    if (!res.ok) {
+      throw new Error("Login failed");
     }
 
-    const result = await response.json();
-    setTokens(result.accessToken, { ...result.user, refreshToken: result.refreshToken });
+    const result = await res.json();
+
+    // access token save
+    localStorage.setItem("accessToken", result.accessToken);
+
     return result;
   },
 
-  async signIn(data: SignInData): Promise<{ user: User & { refreshToken: string }; accessToken: string }> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/sign-in`, {
+  // 📝 REGISTER
+  signUp: async (data: { name: string; email: string; password: string }) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/sign-up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
       credentials: "include",
+      body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Sign in failed");
+    if (!res.ok) {
+      throw new Error("Signup failed");
     }
 
-    const result = await response.json();
-    setTokens(result.accessToken, result.user);
-    return result;
+    return res.json();
   },
 
-  async getProfile(): Promise<{ user: User }> {
-    let { accessToken } = getTokens();
-
-    if (!accessToken) {
-      clearTokens();
-      window.location.href = "/sign-in";
-      throw new Error("No access token");
-    }
-
-    // Check if token is expired or about to expire
-    if (isTokenExpired(accessToken)) {
-      const newToken = await refreshAccessToken();
-      if (!newToken) throw new Error("Token refresh failed");
-      accessToken = newToken;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+  // 👤 PROFILE (Protected)
+  profile: async () => {
+    const res = await apiFetch(`${BACKEND_URL}/api/auth/profile`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      credentials: "include",
     });
 
-    if (response.status === 401) {
-      // Try to refresh token
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        // Retry with new token
-        return this.getProfile();
-      }
-      throw new Error("Unauthorized");
+    if (!res?.ok) {
+      throw new Error("Failed to fetch profile");
     }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to fetch profile");
-    }
-
-    return response.json();
+    return res.json();
   },
 
-  logout() {
-    clearTokens();
-    window.location.href = "/sign-in";
+  // 🚪 LOGOUT
+  logout: async () => {
+    await apiFetch(`${BACKEND_URL}/logout`, {
+      method: "POST",
+    });
+
+    localStorage.removeItem("accessToken");
   },
 };

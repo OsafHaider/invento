@@ -1,3 +1,4 @@
+import { env } from "../config/evn.js";
 import { User } from "../models/user.js";
 import type { AuthResponse } from "../types/index.js";
 import type { Request, Response } from "express";
@@ -9,14 +10,12 @@ import {
 } from "../lib/jwt.js";
 const saltRounds = 10;
 // 7day (matches JWT refresh token expiry)
-const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY = 10 * 60 * 1000;
 
 const cookieOptions = {
-  httpOnly: true,
-  secure:
-    process.env.NODE_ENV === "production" ||
-    process.env.NODE_ENV === "development",
-  sameSite: "strict" as const,
+ httpOnly: true,
+  secure: false, // localhost pe false
+  sameSite: "lax",
   maxAge: REFRESH_TOKEN_EXPIRY,
 };
 export const signUp = async (req: Request, res: Response): Promise<void> => {
@@ -98,7 +97,6 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         role: user.role,
-        refreshToken: user.refreshToken,
       },
     };
 
@@ -113,15 +111,13 @@ export const refreshToken = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { refreshToken: token } = req.body;
-
+    const token = req.cookies.refreshToken;
     // Verify refresh token
     const payload = verifyRefreshToken(token);
     if (!payload) {
       res.status(401).json({ error: "Invalid refresh token" });
       return;
     }
-
     // Find user and verify stored refresh token matches
     const user = await User.findById(payload.id);
     if (!user || user.refreshToken !== token) {

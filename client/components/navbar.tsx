@@ -1,40 +1,28 @@
 "use client";
+
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 
 const Navbar = () => {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  const [userName, setUserName] = React.useState("");
+  const { user, isAuthenticated } = useAuth();
 
-  React.useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    const user = localStorage.getItem("user");
-    if (token && user) {
-      setIsLoggedIn(true);
-      try {
-        const userData = JSON.parse(user);
-        setUserName(userData.name);
-      } catch (e) {
-        setIsLoggedIn(false);
-      }
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    window.location.href = "/sign-in";
-  };
+  console.log(user, isAuthenticated);
 
   return (
     <nav className="border-b bg-background sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold text-primary">
+        <Link
+          href="/"
+          className="text-2xl font-bold text-primary flex items-center gap-2"
+        >
+          <Image src="/logo.svg" alt="Invento Logo" width={32} height={32} />
           Invento
         </Link>
 
-        {isLoggedIn ? (
+        {isAuthenticated && user ? (
           <div className="flex items-center gap-6">
             <div className="flex gap-4">
               <Link href="/products" className="text-sm hover:text-primary">
@@ -44,15 +32,10 @@ const Navbar = () => {
                 Profile
               </Link>
             </div>
+
             <div className="flex items-center gap-3">
-              <div className="text-sm">
-                <p className="font-medium">{userName}</p>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-              >
+              <p className="text-sm font-medium">{user.name}</p>
+              <Button variant="outline" size="sm">
                 Logout
               </Button>
             </div>
