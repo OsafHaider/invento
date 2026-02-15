@@ -17,7 +17,6 @@ interface StockTransactionFormProps {
   currentStock: number;
   onSuccess?: (transaction: StockTransaction) => void;
 }
-
 export default function StockTransactionForm({
   productId,
   currentStock,
@@ -26,14 +25,8 @@ export default function StockTransactionForm({
   // ---------------- Schema ----------------
   const schema = z
     .object({
-      type: z.enum(["IN", "OUT"], {
-        required_error: "Transaction type is required",
-      }),
-      quantity: z
-        .number({
-          required_error: "Quantity is required",
-          invalid_type_error: "Quantity must be a number",
-        })
+      type: z.enum(["IN", "OUT"], { message: "Transaction type is required or invalid" }),
+      quantity: z.number({ message: "Quantity must be a number" })
         .int("Quantity must be a whole number")
         .positive("Quantity must be greater than 0"),
     })

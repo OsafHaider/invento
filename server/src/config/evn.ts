@@ -23,5 +23,5 @@ export const env = {
   ACCESS_TOKEN_SECRET: getEnvVariable("ACCESS_TOKEN_SECRET"),
 
   REFRESH_TOKEN_SECRET: getEnvVariable("REFRESH_TOKEN_SECRET"),
-  GEMINI_KEY: getEnvVariable("GEMINI_KEY"),
+  OLLAMA_URL: getEnvVariable("OLLAMA_URL"),
 };

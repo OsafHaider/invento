@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,21 +11,21 @@ import { Button } from "@/components/ui/button";
 import FormInput from "@/components/form-input";
 import { authAPI } from "@/lib/auth-api";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
 
 // ---------------- Schema ----------------
 const signInSchema = z.object({
-  // Use the 'error' key instead of a raw string for the message
-  email: z.string().trim().pipe(
-    z.email({ error: "Invalid email address" })
-  ),
-  password: z.string().min(1, { message: "Password is required" }),
+  email: z.string().min(1, "Email is required").email("Invalid email").trim(),
+  password: z.string().min(1, "Password is required"),
 });
 
-// Use z.input to ensure the form types match the raw HTML input fields
-type SignInForm = z.input<typeof signInSchema>;
+type SignInForm = z.infer<typeof signInSchema>;
 
 export default function SignIn() {
   const router = useRouter();
+  const { setUser, setIsAuthenticated } = useAuth();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
   const {
     register,
     handleSubmit,
@@ -40,7 +41,10 @@ export default function SignIn() {
 
   const onSubmit = async (data: SignInForm) => {
     try {
-      await authAPI.signIn(data);
+      const result = await authAPI.signIn(data);
+
+      setUser(result.user);
+      setIsAuthenticated(true);
 
       toast.success("Logged in successfully");
       router.push("/profile");
@@ -89,13 +93,15 @@ export default function SignIn() {
 
           <FormInput
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             autoComplete="current-password"
             aria-invalid={!!errors.password}
             {...register("password")}
             error={errors.password?.message}
             disabled={isSubmitting}
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword(!showPassword)}
           />
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>

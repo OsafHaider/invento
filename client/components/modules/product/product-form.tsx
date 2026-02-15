@@ -166,6 +166,7 @@ export default function ProductForm({
           <Button
             type="button"
             variant="outline"
+            
             size="sm"
             onClick={handleGenerateDescription}
             disabled={aiLoading || isSubmitting}

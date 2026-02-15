@@ -1,0 +1,43 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build output (builder stage khud banayega)
+dist
+build
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Tests
+coverage
+__tests__
+*.test.ts
+
+# IDE
+.vscode
+.idea
+
+# Misc
+tmp
+.cache

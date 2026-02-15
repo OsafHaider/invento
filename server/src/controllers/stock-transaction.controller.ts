@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { StockTransaction } from "../models/stock-transaction.js";
 import { Product } from "../models/product.js";
 import mongoose from "mongoose";
+import { generateLowStockAlert } from "../lib/ai.js";
+import { Alert } from "../models/alert.js";
 
 /* ================= CREATE TRANSACTION ================= */
 export const handleCreateStockTransaction = async (
@@ -12,7 +14,7 @@ export const handleCreateStockTransaction = async (
     const { productId, type } = req.body;
     const quantity = Number(req.body.quantity);
 
-    /* ================= VALIDATION ================= */
+    /* ===== VALIDATION ===== */
 
     if (!productId || !type || !quantity) {
       res.status(400).json({ error: "All fields are required" });
@@ -34,16 +36,12 @@ export const handleCreateStockTransaction = async (
       return;
     }
 
-    /* ================= FIND PRODUCT ================= */
-
     const product = await Product.findById(productId);
 
     if (!product) {
       res.status(404).json({ error: "Product not found" });
       return;
     }
-
-    /* ================= STOCK CHECK ================= */
 
     if (type === "OUT" && product.quantity < quantity) {
       res.status(400).json({
@@ -53,13 +51,35 @@ export const handleCreateStockTransaction = async (
       return;
     }
 
-    /* ================= UPDATE STOCK ================= */
+    /* ===== STOCK UPDATE ===== */
 
+    const previousQuantity = product.quantity;
     const quantityChange = type === "IN" ? quantity : -quantity;
+
     product.quantity += quantityChange;
     await product.save();
 
-    /* ================= CREATE TRANSACTION ================= */
+    /* ===== LOW STOCK CHECK (NO SPAM LOGIC) ===== */
+
+    const crossedThreshold =
+      previousQuantity > product.lowStockThreshold &&
+      product.quantity <= product.lowStockThreshold;
+
+    if (crossedThreshold) {
+      const message = await generateLowStockAlert(
+        product.name,
+        product.quantity
+      );
+
+      await Alert.create({
+        productId: product._id,
+        message,
+        type: "LOW_STOCK",
+        isRead: false,
+      });
+    }
+
+    /* ===== CREATE TRANSACTION ===== */
 
     const performedBy = (req as any).user?.id;
 

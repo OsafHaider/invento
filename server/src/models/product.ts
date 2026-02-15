@@ -11,6 +11,7 @@ export interface IProduct extends Document {
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  lowStockThreshold:number
 }
 
 const productSchema = new mongoose.Schema<IProduct>(
@@ -22,6 +23,10 @@ const productSchema = new mongoose.Schema<IProduct>(
     category: { type: String, required: true },
     image: { type: String, default: null },
     sku_code: { type: String, unique: true, required: true },
+    lowStockThreshold: {
+  type: Number,
+  default: 5
+},
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
