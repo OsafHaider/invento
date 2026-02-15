@@ -7,43 +7,20 @@ import { Button } from "@/components/ui/button";
 import FormInput from "@/components/form-input";
 import { productAPI, Product } from "@/lib/product-api";
 import { toast } from "sonner";
-import axios from "axios";
-
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
 interface ProductFormProps {
   initialData?: Product;
   onSuccess?: () => void;
 }
 
-// ---------------- Schema ----------------
 const productSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Product name is required")
-    .max(100, "Product name must not exceed 100 characters")
-    .trim(),
-
-  description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters")
-    .trim(),
-
-  price: z
-    .number({
-      required_error: "Price is required",
-      invalid_type_error: "Price must be a number",
-    })
-    .positive("Price must be greater than 0"),
-
-  category: z.string().min(1, "Category is required").trim(),
-
-  sku_code: z.string().min(1, "SKU code is required").trim(),
-
-  image: z
-    .string()
-    .url("Image must be a valid URL")
-    .optional()
-    .or(z.literal("")),
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().trim(),
+  price: z.number().positive(),
+  category: z.string().min(1).trim(),
+  sku_code: z.string().min(1).trim(),
+  image: z.string().url().optional().or(z.literal("")),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -52,10 +29,13 @@ export default function ProductForm({
   initialData,
   onSuccess,
 }: ProductFormProps) {
+  const [aiLoading, setAiLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
-    setError,
+    setValue,
+    getValues,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormValues>({
@@ -70,20 +50,62 @@ export default function ProductForm({
     },
   });
 
+  // ---------------- AI GENERATE FUNCTION ----------------
+  const handleGenerateDescription = async () => {
+    const name = getValues("name");
+    const category = getValues("category");
+
+    if (!name) {
+      toast.error("Enter product name first");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+
+      const res = await fetch(
+        `http://localhost:8080/api/products/ai-description`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({ name, category }),
+        },
+      );
+
+      if (!res.ok) throw new Error("AI request failed");
+
+      const data = await res.json();
+
+      setValue("description", data.description, {
+        shouldValidate: true,
+      });
+
+      toast.success("AI description generated");
+    } catch (error) {
+      toast.error("Failed to generate description");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // ---------------- SUBMIT ----------------
   const onSubmit = async (data: ProductFormValues) => {
     try {
       if (initialData) {
-        await productAPI.updateProduct(initialData.id, data);
+        await productAPI.updateProduct(initialData._id, data);
         toast.success("Product updated successfully");
+      } else {
+        await productAPI.createProduct(data);
+        toast.success("Product created successfully");
+        reset();
       }
-        else {
-          await productAPI.createProduct(data);
-          toast.success("Product created successfully");
-          reset(); // clean reset instead of manual state juggling
-        }
+
       onSuccess?.();
     } catch (error) {
-      
+      toast.error("Something went wrong");
     }
   };
 
@@ -93,16 +115,10 @@ export default function ProductForm({
       className="space-y-4 max-w-2xl"
       noValidate
     >
-      {errors.root && (
-        <div className="text-sm text-red-500">{errors.root.message}</div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormInput
           label="Product Name"
           type="text"
-          placeholder="Enter product name"
-          aria-invalid={!!errors.name}
           {...register("name")}
           error={errors.name?.message}
           disabled={isSubmitting}
@@ -111,8 +127,6 @@ export default function ProductForm({
         <FormInput
           label="Category"
           type="text"
-          placeholder="e.g., Electronics"
-          aria-invalid={!!errors.category}
           {...register("category")}
           error={errors.category?.message}
           disabled={isSubmitting}
@@ -121,8 +135,6 @@ export default function ProductForm({
         <FormInput
           label="SKU Code"
           type="text"
-          placeholder="e.g., SKU-001"
-          aria-invalid={!!errors.sku_code}
           {...register("sku_code")}
           error={errors.sku_code?.message}
           disabled={isSubmitting}
@@ -132,7 +144,6 @@ export default function ProductForm({
           label="Price"
           type="number"
           step="0.01"
-          aria-invalid={!!errors.price}
           {...register("price", { valueAsNumber: true })}
           error={errors.price?.message}
           disabled={isSubmitting}
@@ -141,23 +152,37 @@ export default function ProductForm({
         <FormInput
           label="Image URL (Optional)"
           type="text"
-          placeholder="https://example.com/image.jpg"
-          aria-invalid={!!errors.image}
           {...register("image")}
           error={errors.image?.message}
           disabled={isSubmitting}
         />
       </div>
 
+      {/* DESCRIPTION + AI BUTTON */}
       <div>
-        <label className="text-sm font-medium">Description</label>
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium">Description</label>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateDescription}
+            disabled={aiLoading || isSubmitting}
+          >
+            <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
+
+            {aiLoading ? "Generating..." : "Generate with AI"}
+          </Button>
+        </div>
+
         <textarea
           rows={4}
           className="w-full px-3 py-2 mt-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          aria-invalid={!!errors.description}
           {...register("description")}
           disabled={isSubmitting}
         />
+
         {errors.description && (
           <span className="text-xs text-destructive">
             {errors.description.message}

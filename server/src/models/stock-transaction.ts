@@ -1,6 +1,15 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
 
-const stockTransactionSchema = new mongoose.Schema(
+export interface IStockTransaction extends Document {
+  productId: mongoose.Types.ObjectId;
+  type: "IN" | "OUT";
+  quantity: number;
+  performedBy: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const stockTransactionSchema = new mongoose.Schema<IStockTransaction>(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,10 +32,12 @@ const stockTransactionSchema = new mongoose.Schema(
       required: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
-export const StockTransaction =
+
+export const StockTransaction: Model<IStockTransaction> =
   mongoose.models.StockTransaction ||
-  mongoose.model("StockTransaction", stockTransactionSchema);
+  mongoose.model<IStockTransaction>(
+    "StockTransaction",
+    stockTransactionSchema
+  );

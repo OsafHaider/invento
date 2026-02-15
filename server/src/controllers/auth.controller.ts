@@ -1,4 +1,3 @@
-import { env } from "../config/evn.js";
 import { User } from "../models/user.js";
 import type { AuthResponse } from "../types/index.js";
 import type { Request, Response } from "express";
@@ -9,33 +8,31 @@ import {
   verifyRefreshToken,
 } from "../lib/jwt.js";
 const saltRounds = 10;
-// 7day (matches JWT refresh token expiry)
-const REFRESH_TOKEN_EXPIRY = 10 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000;
 
 const cookieOptions = {
- httpOnly: true,
-  secure: false, // localhost pe false
-  sameSite: "lax",
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
   maxAge: REFRESH_TOKEN_EXPIRY,
 };
+
 export const signUp = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, role } = req.body;
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const { email, password, name } = req.body;
+    const normalizedEmail = email.toLowerCase();
+const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       res.status(409).json({ error: "User already exists" });
       return;
     }
     const salt = await bcrypt.genSalt(saltRounds);
     const hashedPassword = await bcrypt.hash(password, salt);
-
     const newUser = new User({
-      email,
-      password: hashedPassword,
-      name,
-      role: role,
-    });
+  email: normalizedEmail,
+  password: hashedPassword,
+  name,
+});
     await newUser.save();
 
     const response: AuthResponse = {
@@ -59,37 +56,39 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
 export const signIn = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!email || !password) {
+      res.status(400).json({ error: "Email and password required" });
+      return;
+    }
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
     }
-    // Verify password using bcryptjs comparison
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
     }
-    // Generate tokens
     const accessToken = generateAccessToken({
       id: user.id,
       email: user.email,
       role: user.role,
     });
-
     const refreshToken = generateRefreshToken({
       id: user.id,
       email: user.email,
       role: user.role,
     });
 
-    // Save refresh token to database
     user.refreshToken = refreshToken;
     await user.save();
+
     res.cookie("refreshToken", refreshToken, cookieOptions);
-    const response = {
-      accessToken: accessToken,
+
+    res.status(200).json({
+      accessToken,
       user: {
         id: user._id.toString(),
         email: user.email,
@@ -98,13 +97,12 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
         updatedAt: user.updatedAt,
         role: user.role,
       },
-    };
-
-    res.status(200).json(response);
+    });
   } catch (error) {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
 
 export const refreshToken = async (
   req: Request,
@@ -112,20 +110,22 @@ export const refreshToken = async (
 ): Promise<void> => {
   try {
     const token = req.cookies.refreshToken;
-    // Verify refresh token
+    if (!token) {
+  res.status(401).json({ error: "No refresh token provided" });
+  return;
+}
+
     const payload = verifyRefreshToken(token);
     if (!payload) {
       res.status(401).json({ error: "Invalid refresh token" });
       return;
     }
-    // Find user and verify stored refresh token matches
     const user = await User.findById(payload.id);
     if (!user || user.refreshToken !== token) {
       res.status(401).json({ error: "Invalid refresh token" });
       return;
     }
 
-    // Generate tokens
     const accessToken = generateAccessToken({
       id: user.id,
       email: user.email,
@@ -137,7 +137,6 @@ export const refreshToken = async (
       email: user.email,
       role: user.role,
     });
-    // Update refresh token in database
     user.refreshToken = refreshToken;
     await user.save();
     res.cookie("refreshToken", refreshToken, cookieOptions);

@@ -1,31 +1,36 @@
+import type { FilterQuery } from 'mongoose';
 import type { Request, Response } from "express";
-import { Product } from "../models/product.js";
+import { Product, type IProduct } from "../models/product.js";
+import { generateProductDescription } from "../lib/ai.js";
 
+/* ================= CREATE ================= */
 export const handleCreateProduct = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const data = req.body;
-    const sku_code = data.sku_code;
-    // Check if SKU code already exists
-    const existingProduct = await Product.findOne({
-      sku_code: sku_code,
-    }).select("_id");
+    const { sku_code, ...rest } = req.body;
 
-    if (existingProduct) {
+    if (!sku_code) {
+      res.status(400).json({ error: "SKU code is required" });
+      return;
+    }
+
+    const existing = await Product.findOne({ sku_code}).select("_id");
+    if (existing) {
       res.status(409).json({ error: "SKU code already exists" });
       return;
     }
 
-    const newProduct = new Product({
-      ...data,
-      createdBy: (req as any).user.id,
+    const product = await Product.create({
+      ...rest,
+      sku_code,
+      createdBy: req.user?.id,
     });
-    await newProduct.save();
+
     res.status(201).json({
       message: "Product created successfully",
-      //   product: newProduct,
+      product,
     });
   } catch (error) {
     console.error("Create product error:", error);
@@ -35,27 +40,32 @@ export const handleCreateProduct = async (
 
 export const handleGetProduct = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // 🔥 Role-based filter
-    let filter: any = {};
+    const filter: FilterQuery<IProduct> = {};
 
     if (req.user?.role !== "admin") {
-      filter.createdBy = req.user?.id;
+      if (!req.user?.id) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      filter.createdBy = req.user.id;
     }
 
-    const products = await Product.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .select("-__v")
-      .populate("createdBy", "name email");
-
-    const total = await Product.countDocuments(filter);
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .select("-__v")
+        .populate("createdBy", "name email"),
+      Product.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       products,
@@ -66,20 +76,21 @@ export const handleGetProduct = async (
         pages: Math.ceil(total / limit),
       },
     });
+
   } catch (error) {
     console.error("Get products error:", error);
     res.status(500).json({ error: "Failed to fetch products" });
   }
 };
 
+
+/* ================= GET BY ID ================= */
 export const getProductByID = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
-    const product = await Product.findById(id).select("-__v");
+    const product = await Product.findById(req.params.id).select("-__v");
 
     if (!product) {
       res.status(404).json({ error: "Product not found" });
@@ -88,18 +99,21 @@ export const getProductByID = async (
 
     res.status(200).json({ product });
   } catch (error) {
-    console.error("Get product error:", error);
     res.status(500).json({ error: "Failed to fetch product" });
   }
 };
 
+/* ================= UPDATE ================= */
 export const updateProductByID = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
+    const {id}=req.params
+    if (!id) {
+  res.status(400).json({ error: "Product id is required" });
+  return;
+}
     const product = await Product.findById(id);
 
     if (!product) {
@@ -107,9 +121,12 @@ export const updateProductByID = async (
       return;
     }
 
-    // Only creator can update
-    if (product.createdBy.toString() !== (req as any).user.id) {
-      res.status(403).json({ error: "Unauthorized to update this product" });
+    // Allow admin OR creator
+    if (
+      req.user?.role !== "admin" &&
+      product.createdBy.toString() !== req.user?.id
+    ) {
+      res.status(403).json({ error: "Unauthorized" });
       return;
     }
 
@@ -121,36 +138,57 @@ export const updateProductByID = async (
       product,
     });
   } catch (error) {
-    console.error("Update product error:", error);
     res.status(500).json({ error: "Failed to update product" });
   }
 };
 
+/* ================= DELETE ================= */
 export const deleteProductByID = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
-    const product = await Product.findById(id);
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
       res.status(404).json({ error: "Product not found" });
       return;
     }
 
-    // Only creator can delete
-    if (product.createdBy.toString() !== (req as any).user.id) {
-      res.status(403).json({ error: "Unauthorized to delete this product" });
+    if (
+      req.user?.role !== "admin" &&
+      product.createdBy.toString() !== req.user?.id
+    ) {
+      res.status(403).json({ error: "Unauthorized" });
       return;
     }
 
-    await Product.findByIdAndDelete(id);
+    await product.deleteOne();
 
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
-    console.error("Delete product error:", error);
     res.status(500).json({ error: "Failed to delete product" });
+  }
+};
+
+/* ================= AI DESCRIPTION ================= */
+export const handleGenerateDescription = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { name, category } = req.body;
+
+    if (!name) {
+      res.status(400).json({ message: "Product name is required" });
+      return;
+    }
+
+    const description = await generateProductDescription(name, category);
+
+    res.json({ description });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "AI generation failed" });
   }
 };
