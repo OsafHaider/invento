@@ -46,14 +46,21 @@ async function handleResponse<T>(res: Response | undefined): Promise<T> {
 
 export const productAPI = {
   async getProducts(page = 1, limit = 10): Promise<ProductsResponse> {
-    const res = await apiFetch(
-      `http://localhost:8080/api/products?page=1&limit=10`
-    );
-    return handleResponse<ProductsResponse>(res);
-  },
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const res = await apiFetch(
+    `http://localhost:8080/api/products?${params.toString()}`
+  );
+
+  return handleResponse<ProductsResponse>(res);
+},
+
 
   async getProductById(id: string): Promise<{ product: Product }> {
-    const res = await apiFetch(`${BACKEND_URL}/products/${id}`);
+    const res = await apiFetch(`${BACKEND_URL}/api/products/${id}`);
     return handleResponse<{ product: Product }>(res);
   },
 
@@ -71,7 +78,7 @@ export const productAPI = {
     id: string,
     data: Partial<CreateProductInput>
   ): Promise<{ message: string; product: Product }> {
-    const res = await apiFetch(`${BACKEND_URL}/products/${id}`, {
+    const res = await apiFetch(`${BACKEND_URL}/api/products/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
@@ -79,9 +86,16 @@ export const productAPI = {
   },
 
   async deleteProduct(id: string): Promise<{ message: string }> {
-    const res = await apiFetch(`${BACKEND_URL}/products/${id}`, {
+    const res = await apiFetch(`${BACKEND_URL}/api/products/${id}`, {
       method: "DELETE",
     });
     return handleResponse<{ message: string }>(res);
   },
+  async getDescFromAi(){
+    const res = await apiFetch(`${BACKEND_URL}/products/ai-description`, {
+      method: "POST",
+    });
+    return handleResponse<{ description: string }>(res);
+  }
 };
+

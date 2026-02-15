@@ -50,7 +50,7 @@ export const stockTransactionAPI = {
   async createTransaction(
     payload: CreateTransactionInput
   ): Promise<{ message: string; transaction: StockTransaction }> {
-    const res = await apiFetch(`${BACKEND_URL}/stock`, {
+    const res = await apiFetch(`${BACKEND_URL}/api/stock`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -64,7 +64,7 @@ export const stockTransactionAPI = {
     limit: number = 10
   ): Promise<TransactionHistory> {
     const res = await apiFetch(
-      `${BACKEND_URL}/stock/${productId}?page=${page}&limit=${limit}`
+      `${BACKEND_URL}/api/stock/${productId}?page=${page}&limit=${limit}`
     );
 
     return handleResponse(res);

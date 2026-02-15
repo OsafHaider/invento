@@ -6,9 +6,7 @@ export const createProductSchema = z.object({
     .min(1, "Product name is required")
     .max(100, "Product name must not exceed 100 characters"),
   description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters"),
+    .string(),
   price: z.number().positive("Price must be greater than 0"),
   category: z.string().min(1, "Category is required"),
   image: z.string().url("Image must be a valid URL").optional(),

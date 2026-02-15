@@ -9,8 +9,6 @@ import { useAuth } from "@/context/auth-context";
 const Navbar = () => {
   const { user, isAuthenticated } = useAuth();
 
-  console.log(user, isAuthenticated);
-
   return (
     <nav className="border-b bg-background sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">

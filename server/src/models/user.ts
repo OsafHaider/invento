@@ -36,6 +36,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ["user", "admin"],
       required: true,
+      default:"user"
     },
     refreshToken: { type: String },
   },

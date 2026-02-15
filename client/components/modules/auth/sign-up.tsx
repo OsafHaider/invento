@@ -9,6 +9,7 @@ import FormInput from "@/components/form-input";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { authAPI } from "@/lib/auth-api";
 
 const signUpSchema = z
   .object({
@@ -44,27 +45,21 @@ export default function SignUp() {
     },
   });
 
-  const onSubmit = async (data: SignUpForm) => {
+   const onSubmit = async (data: SignUpForm) => {
       try {
-        const response = await fetch("/api/auth/sign-up", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          setError("root", { message: errorData.message || "Registration failed." });
-          toast.error(errorData.message || "Registration failed.");
-          return;
-        }
+        await authAPI.signUp(data);
   
         toast.success("Account created successfully");
-      } catch (error) {
-        setError("root", { message: "An unexpected error occurred." });
-        toast.error("An unexpected error occurred.");
+        router.push("/profile");
+      } catch (error: unknown) {
+        // Generic error handling
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Login failed. Please try again.";
+  
+        setError("root", { message });
+        toast.error(message);
       }
     };
 

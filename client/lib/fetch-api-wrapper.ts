@@ -9,7 +9,6 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   };
 
   let res = await fetch(url, options);
-console.log(res)
   // check if token expired
   if (res.status === 401) {
     // attempt refresh
