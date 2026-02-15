@@ -1,7 +1,7 @@
-import type { FilterQuery } from 'mongoose';
 import type { Request, Response } from "express";
 import { Product, type IProduct } from "../models/product.js";
 import { generateProductDescription } from "../lib/ai.js";
+import type { QueryFilter } from "mongoose";
 
 /* ================= CREATE ================= */
 export const handleCreateProduct = async (
@@ -47,7 +47,7 @@ export const handleGetProduct = async (
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const filter: FilterQuery<IProduct> = {};
+    const filter: QueryFilter<IProduct> = {};
 
     if (req.user?.role !== "admin") {
       if (!req.user?.id) {

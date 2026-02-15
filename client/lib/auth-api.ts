@@ -5,26 +5,26 @@ const BACKEND_URL= "http://localhost:8080"
 export const authAPI = {
   // 🔐 LOGIN
   signIn: async (data: { email: string; password: string }) => {
-    const res = await fetch(`${BACKEND_URL}/api/auth/sign-in`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    });
+  const res = await fetch(`${BACKEND_URL}/api/auth/sign-in`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
 
-    if (!res.ok) {
-      throw new Error("Login failed");
-    }
+  if (!res.ok) {
+    throw new Error("Login failed");
+  }
 
-    const result = await res.json();
+  const result = await res.json();
 
-    // access token save
-    localStorage.setItem("accessToken", result.accessToken);
+  localStorage.setItem("accessToken", result.accessToken);
 
-    return result;
-  },
+  return result; // result.user hona chahiye backend se
+},
+
 
   // 📝 REGISTER
   signUp: async (data: { name: string; email: string; password: string }) => {

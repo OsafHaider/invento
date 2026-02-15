@@ -5,6 +5,7 @@ import cookieparser from "cookie-parser";
 import cors from "cors";
 import { productRouter } from "./routes/product.route.js";
 import { stockTransactionRouter } from "./routes/stock-transaction.routes.js";
+import { alertRouter } from "./routes/alert.routes.js";
 export const app: Application = express();
 
 // Middleware
@@ -23,6 +24,7 @@ app.use(
 app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/stock", stockTransactionRouter);
+app.use("/api/alerts", alertRouter);
 // Health check endpoint
 app.get("/health", (_, res: Response) => {
   res.status(200).json({ status: "ok", message: "Invento server is running" });

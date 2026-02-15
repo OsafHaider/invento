@@ -1,0 +1,58 @@
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  ollama:
+    build: ./ollama
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+    - ollama-data:/root/.ollama
+    networks:
+    - app-network
+    ports:
+    - "11434:11434"
+
+
+
+  backend:
+    build: ./server
+    container_name: server
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+      - ollama
+    networks:
+      - app-network
+
+  frontend:
+    build: ./client
+    container_name: client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+  ollama-data:
+
+networks:
+  app-network:
+    driver: bridge

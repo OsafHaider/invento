@@ -1,20 +1,28 @@
+"use client";
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 
 export default function Home() {
+  const { isAuthenticated, user } = useAuth();
   return (
     <main className="min-h-screen py-12 px-4">
       <div className="max-w-5xl mx-auto space-y-16">
         {/* Hero Section */}
         <div className="text-center space-y-6">
+          <h1 className="text-4xl md:text-5xl font-bold">
+            {isAuthenticated
+              ? `Welcome back, ${user?.name || "User"}!👋`
+              : "Welcome to Invento!"}
+          </h1>
           <h1 className="text-5xl md:text-6xl font-bold">Invento</h1>
           <p className="text-xl text-muted-foreground">
             Simple and powerful inventory management system
           </p>
 
           <div className="flex gap-4 justify-center pt-4">
-            <Link href="/sign-in">
+            <Link className={isAuthenticated ? "hidden" : ""} href="/sign-in">
               <Button variant="outline" size="lg">
                 Sign In
               </Button>
