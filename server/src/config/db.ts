@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 import { env } from "./evn.js";
 
+const databaseURL="mongodb://localhost:27017/invento"
 export const connectDB = async (): Promise<void> => {
   try {
-    await mongoose.connect("mongodb://localhost:27017/invento");
+    await mongoose.connect(databaseURL);
     console.log("MongoDB connected successfully");
   } catch (error) {
     console.error("MongoDB connection failed:", error);

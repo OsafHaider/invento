@@ -1,7 +1,7 @@
+const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export async function apiFetch(url: string, options: RequestInit = {}) {
   const accessToken = localStorage.getItem("accessToken");
 
-  // attach token
   options.headers = {
     ...options.headers,
     Authorization: accessToken ? `Bearer ${accessToken}` : "",
@@ -9,28 +9,23 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   };
 
   let res = await fetch(url, options);
-  // check if token expired
   if (res.status === 401) {
-    // attempt refresh
-    const refreshRes = await fetch("http://localhost:8080/api/auth/refresh", {
+    const refreshRes = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
       method: "POST",
-      credentials: "include", // cookie-based refresh
+      credentials: "include",
     });
-
     if (refreshRes.ok) {
       const data = await refreshRes.json();
-      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("accessToken", data.data.accessToken);
 
-      // retry original request
       options.headers = {
         ...options.headers,
-        Authorization: `Bearer ${data.accessToken}`,
+        Authorization: `Bearer ${data.data.accessToken}`,
       };
       res = await fetch(url, options);
     } else {
-      // refresh failed → force logout
       localStorage.removeItem("accessToken");
-      window.location.href = "/sign-in"; // or router.push("/sign-in")
+      window.location.href = "/sign-in";
       return Promise.reject(new Error("Session expired"));
     }
   }

@@ -26,6 +26,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={sharpFont.className}>
         <AuthProvider>
+        
           <Navbar />
           <main className="w-full overflow-hidden">{children}</main>
         </AuthProvider>

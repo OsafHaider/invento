@@ -6,10 +6,26 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import AlertsDropdown from "./alert-dropdown";
+import AISummaryCard from "./ai-summary";
+import { authAPI } from "@/lib/auth-api";
+import { useRouter } from "next/navigation";
 
 const Navbar = () => {
-  const { user, isAuthenticated } = useAuth();
-
+  const { user, isAuthenticated, setUser, setIsAuthenticated } = useAuth();
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      const res = await authAPI.logout();
+      console.log(res);
+      if (res.success) {
+        setUser(null);
+        setIsAuthenticated(false);
+        router.push("/sign-in");
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
   return (
     <nav className="border-b bg-background sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -31,10 +47,11 @@ const Navbar = () => {
                 Profile
               </Link>
             </div>
+            <AISummaryCard />
             <AlertsDropdown />
             <div className="flex items-center gap-3">
               <p className="text-sm font-medium">{user.name}</p>
-              <Button variant="outline" size="sm">
+              <Button onClick={handleLogout} variant="outline" size="sm">
                 Logout
               </Button>
             </div>

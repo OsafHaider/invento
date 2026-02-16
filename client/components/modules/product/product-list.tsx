@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { productAPI, ProductsResponse } from "@/lib/product-api";
+import { apiFetch } from "@/lib/fetch-api-wrapper";
 
 const ProductList = () => {
   const [data, setData] = React.useState<ProductsResponse | null>(null);
@@ -16,8 +17,11 @@ const ProductList = () => {
       setIsLoading(true);
       setError("");
 
-      const response = await productAPI.getProducts(page, 10);
-      setData(response);
+      const response = await apiFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/products?page=${page}&limit=10`
+      );
+      const resData = await response.json();
+      setData(resData.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch products");
     } finally {

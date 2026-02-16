@@ -79,7 +79,7 @@ export default function ProductForm({
 
       const data = await res.json();
 
-      setValue("description", data.description, {
+      setValue("description", data.data.description, {
         shouldValidate: true,
       });
 

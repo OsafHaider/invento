@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem("accessToken");
-
+      console.log(token);
       if (!token) {
         setIsLoading(false);
         return;
@@ -44,9 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const data = await authAPI.profile();
-        setUser(data.user);
+        console.log(data);
+        setUser(data.data.user);
         setIsAuthenticated(true);
-      } catch {
+      } catch (err) {
         localStorage.removeItem("accessToken");
         setUser(null);
         setIsAuthenticated(false);

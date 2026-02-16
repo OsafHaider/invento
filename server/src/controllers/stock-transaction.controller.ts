@@ -1,79 +1,85 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { StockTransaction } from "../models/stock-transaction.js";
 import { Product } from "../models/product.js";
 import mongoose from "mongoose";
-import { generateLowStockAlert } from "../lib/ai.js";
 import { Alert } from "../models/alert.js";
+import { ApiError } from "../utils/api-error.js";
+import { sendResponse } from "../utils/response.js";
 
-/* ================= CREATE TRANSACTION ================= */
+interface Transaction{
+  productId: string;
+  type: "IN" | "OUT";
+  quantity: number;
+  performedBy: string;
+}
+
+interface Alert{
+  alertID: string | string[] | undefined;
+}
 export const handleCreateStockTransaction = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
-    const { productId, type } = req.body;
-    const quantity = Number(req.body.quantity);
+    const { productId, type, quantity } = req.body;
 
     /* ===== VALIDATION ===== */
 
     if (!productId || !type || !quantity) {
-      res.status(400).json({ error: "All fields are required" });
-      return;
+      throw new ApiError(400, "All fields are required");
     }
 
     if (!["IN", "OUT"].includes(type)) {
-      res.status(400).json({ error: "Invalid transaction type" });
-      return;
+      throw new ApiError(400, "Invalid transaction type");
     }
 
-    if (quantity <= 0) {
-      res.status(400).json({ error: "Quantity must be greater than 0" });
-      return;
+    if (isNaN(quantity) || Number(quantity) <= 0) {
+      throw new ApiError(400, "Quantity must be greater than 0");
     }
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
-      res.status(400).json({ error: "Invalid product id" });
-      return;
+      throw new ApiError(400, "Invalid product id");
     }
+
+    /* ===== FETCH PRODUCT ===== */
 
     const product = await Product.findById(productId);
 
     if (!product) {
-      res.status(404).json({ error: "Product not found" });
-      return;
+      throw new ApiError(404, "Product not found");
     }
 
-    if (type === "OUT" && product.quantity < quantity) {
-      res.status(400).json({
-        error: "Insufficient stock",
-        available: product.quantity,
-      });
-      return;
+    const qty = Number(quantity);
+
+    if (type === "OUT" && product.quantity < qty) {
+      throw new ApiError(
+        400,
+        `Insufficient stock. Available: ${product.quantity}`
+      );
     }
 
-    /* ===== STOCK UPDATE ===== */
+    /* ===== UPDATE STOCK ===== */
 
     const previousQuantity = product.quantity;
-    const quantityChange = type === "IN" ? quantity : -quantity;
 
-    product.quantity += quantityChange;
+    if (type === "IN") {
+      product.quantity += qty;
+    } else {
+      product.quantity -= qty;
+    }
+
     await product.save();
 
-    /* ===== LOW STOCK CHECK (NO SPAM LOGIC) ===== */
+    /* ===== LOW STOCK ALERT ===== */
 
-    const crossedThreshold =
+    if (
       previousQuantity > product.lowStockThreshold &&
-      product.quantity <= product.lowStockThreshold;
-
-    if (crossedThreshold) {
-      const message = await generateLowStockAlert(
-        product.name,
-        product.quantity
-      );
-
+      product.quantity <= product.lowStockThreshold
+    ) {
       await Alert.create({
         productId: product._id,
-        message,
+        message: `${product.name} stock is low. Only ${product.quantity} left.`,
         type: "LOW_STOCK",
         isRead: false,
       });
@@ -81,45 +87,54 @@ export const handleCreateStockTransaction = async (
 
     /* ===== CREATE TRANSACTION ===== */
 
-    const performedBy = (req as any).user?.id;
+    const performedBy = req.user?.id!;
+    if (!mongoose.Types.ObjectId.isValid(performedBy)) {
+      throw new ApiError(400, "Invalid user id");
+    }
 
-    const transaction = await StockTransaction.create({
-      productId,
-      type,
-      quantity,
-      performedBy,
-    });
+const createTransaction:Transaction={
+  productId,
+  type,
+  quantity: qty,
+  performedBy
+}
+    const transaction = await StockTransaction.create(createTransaction);
 
-    res.status(201).json({
+    sendResponse({
+      res,
+      statusCode: 201,
+      data: transaction,
       message: "Stock transaction created successfully",
-      transaction,
     });
-
   } catch (error) {
-    console.error("Create stock transaction error:", error);
-    res.status(500).json({ error: "Failed to create stock transaction" });
+    next(error);
   }
 };
 
-/* ================= GET TRANSACTION HISTORY ================= */
+
 export const handleGetTransactionHistory = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const { id } = req.params;
     if (!id) {
-  res.status(400).json({ error: "Product id is required" });
-  return;
+      throw new ApiError(400, "Product id is required");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id as string)) {
+  throw new ApiError(400, "Invalid product id");
 }
+
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
+    const limit = Number(req.query.limit) || 2;
     const skip = (page - 1) * limit;
 
     const product = await Product.findById(id);
+
     if (!product) {
-      res.status(404).json({ error: "Product not found" });
-      return;
+      throw new ApiError(404, "Product not found");
     }
 
     const filter = { productId: id };
@@ -134,17 +149,22 @@ export const handleGetTransactionHistory = async (
       StockTransaction.countDocuments(filter),
     ]);
 
-    res.status(200).json({
-      transactions,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
+    sendResponse({
+      res,
+      statusCode: 200,
+      data: {
+        transactions,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
       },
+      message: "Transaction history fetched successfully",
     });
   } catch (error) {
-    console.error("Get transaction history error:", error);
-    res.status(500).json({ error: "Failed to fetch transaction history" });
+    next(error);
   }
 };
+

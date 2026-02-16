@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,7 +25,7 @@ export default function SignIn() {
   const router = useRouter();
   const { setUser, setIsAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState<boolean>(false);
-
+  
   const {
     register,
     handleSubmit,
@@ -42,8 +42,7 @@ export default function SignIn() {
   const onSubmit = async (data: SignInForm) => {
     try {
       const result = await authAPI.signIn(data);
-
-      setUser(result.user);
+      setUser(result.data.user);
       setIsAuthenticated(true);
 
       toast.success("Logged in successfully");

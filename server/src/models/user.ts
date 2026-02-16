@@ -5,7 +5,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  refreshToken: string;
+  refreshToken: string[] | null;
   createdAt: Date;
   updatedAt: Date;
   role: string;
@@ -38,7 +38,12 @@ const userSchema = new Schema<IUser>(
       required: true,
       default:"user"
     },
-    refreshToken: { type: String },
+    refreshToken: [{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:"RefreshToken",
+      default:null
+
+    }]
   },
   {
     timestamps: true,

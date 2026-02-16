@@ -6,6 +6,8 @@ import cors from "cors";
 import { productRouter } from "./routes/product.route.js";
 import { stockTransactionRouter } from "./routes/stock-transaction.routes.js";
 import { alertRouter } from "./routes/alert.routes.js";
+import { dashboardRouter } from "./routes/dashboard.routes.js";
+import { globalErrorHandler } from "./middleware/error-handler.js";
 export const app: Application = express();
 
 // Middleware
@@ -25,6 +27,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/stock", stockTransactionRouter);
 app.use("/api/alerts", alertRouter);
+app.use("/api/dashboard", dashboardRouter)
+app.use(globalErrorHandler)
 // Health check endpoint
 app.get("/health", (_, res: Response) => {
   res.status(200).json({ status: "ok", message: "Invento server is running" });

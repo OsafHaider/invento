@@ -2,7 +2,7 @@
 
 import { apiFetch } from "./fetch-api-wrapper";
 
-const BACKEND_URL="http://localhost:8080"
+const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export interface StockTransaction {
   _id: string;
   productId: string;
@@ -18,13 +18,15 @@ export interface StockTransaction {
 }
 
 export interface TransactionHistory {
-  transactions: StockTransaction[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
+  data:{
+transactions: StockTransaction[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      pages: number;
+    };
+  }
 }
 
 export interface CreateTransactionInput {

@@ -1,8 +1,5 @@
 import { apiFetch } from "./fetch-api-wrapper";
-
-
-
-const BACKEND_URL="http://localhost:8080"
+const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export interface Product {
   _id: string;
   name: string;
@@ -18,11 +15,14 @@ export interface Product {
 }
 
 export interface ProductsResponse {
-  products: Product[];
-  pagination: { total: number; page: number; limit: number; pages: number };
+products: Product[]
+pagination: { total: number; page: number; limit: number; pages: number };
 }
 
+
+
 export interface CreateProductInput {
+
   name: string;
   description: string;
   price: number;
@@ -36,7 +36,6 @@ async function handleResponse<T>(res: Response | undefined): Promise<T> {
   if (!res) throw new Error("No response from server");
 
   const data = await res.json().catch(() => ({}));
-
   if (!res.ok) {
     throw new Error(data?.message || "Request failed");
   }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProductForm from "@/components/modules/product/product-form";
 import { productAPI, Product } from "@/lib/product-api";
+import { apiFetch } from "@/lib/fetch-api-wrapper";
 
 interface EditProductProps {
   productId: string;
@@ -22,8 +23,11 @@ const EditProduct = ({ productId }: EditProductProps) => {
   const fetchProduct = async () => {
     try {
       setIsLoading(true);
-      const response = await productAPI.getProductById(productId);
-      setProduct(response.product);
+     const req=await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${productId}`);
+     const res=await req.json();
+     console.log(res)
+      const data = res.data;
+      setProduct(data);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch product");

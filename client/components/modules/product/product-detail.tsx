@@ -4,8 +4,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { productAPI, Product } from "@/lib/product-api";
 import { StockManagement } from "@/components/modules/stock-transaction";
+import { apiFetch } from "@/lib/fetch-api-wrapper";
 
 interface ProductDetailProps {
+
   productId: string;
 }
 
@@ -18,18 +20,20 @@ const ProductDetail = ({ productId }: ProductDetailProps) => {
     fetchProduct();
   }, [productId]);
 
-  const fetchProduct = async () => {
-    try {
-      setIsLoading(true);
-      const response = await productAPI.getProductById(productId);
-      setProduct(response.product);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch product");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true);
+       const req=await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${productId}`);
+       const res=await req.json();
+        const data = res.data;
+        setProduct(data);
+        setError("");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch product");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   if (isLoading) {
     return (

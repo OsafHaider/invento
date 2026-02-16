@@ -45,10 +45,10 @@ const TransactionHistory = ({ productId }: TransactionHistoryProps) => {
         limit,
       );
 
-      setTransactions(response.transactions);
+      setTransactions(response.data.transactions);
       setPagination({
-        total: response.pagination.total,
-        pages: response.pagination.pages,
+        total: response.data.pagination.total,
+        pages: response.data.pagination.pages,
       });
     } catch (err) {
       setError(

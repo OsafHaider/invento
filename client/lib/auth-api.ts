@@ -1,9 +1,8 @@
 import { apiFetch } from "./fetch-api-wrapper";
 
 
-const BACKEND_URL= "http://localhost:8080"
+const BACKEND_URL= process.env.NEXT_PUBLIC_API_URL
 export const authAPI = {
-  // 🔐 LOGIN
   signIn: async (data: { email: string; password: string }) => {
   const res = await fetch(`${BACKEND_URL}/api/auth/sign-in`, {
     method: "POST",
@@ -19,16 +18,15 @@ export const authAPI = {
   }
 
   const result = await res.json();
+  const accessToken=result.data.accessToken
+  localStorage.setItem("accessToken", accessToken);
 
-  localStorage.setItem("accessToken", result.accessToken);
-
-  return result; // result.user hona chahiye backend se
+  return result; 
 },
 
 
-  // 📝 REGISTER
   signUp: async (data: { name: string; email: string; password: string }) => {
-    const res = await fetch(`${BACKEND_URL}/api/auth/sign-up`, {
+    const req = await fetch(`${BACKEND_URL}/api/auth/sign-up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,14 +35,13 @@ export const authAPI = {
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) {
+    if (!req.ok) {
       throw new Error("Signup failed");
     }
-
-    return res.json();
+const res=await req.json()
+    return res;
   },
 
-  // 👤 PROFILE (Protected)
   profile: async () => {
     const res = await apiFetch(`${BACKEND_URL}/api/auth/profile`, {
       method: "GET",
@@ -57,12 +54,15 @@ export const authAPI = {
     return res.json();
   },
 
-  // 🚪 LOGOUT
-  logout: async () => {
-    await apiFetch(`${BACKEND_URL}/logout`, {
-      method: "POST",
-    });
-
-    localStorage.removeItem("accessToken");
-  },
+ logout:async()=>{
+  const req=await apiFetch(`${BACKEND_URL}/api/auth/logout`,{
+    method:"POST",
+    credentials:"include"
+  })
+  if(!req.ok){
+    throw new Error("Logout failed");}
+  localStorage.removeItem("accessToken");
+   const res=await req.json()
+    return res;
+ }
 };
