@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +9,8 @@ import FormInput from "@/components/form-input";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { authAPI } from "@/lib/auth-api";
+import { useAuth } from "@/context/auth-context";
+import { apiFetch } from "@/lib/api";
 
 const signUpSchema = z
   .object({
@@ -26,7 +27,14 @@ const signUpSchema = z
 type SignUpForm = z.infer<typeof signUpSchema>;
 
 export default function SignUp() {
-  const router=useRouter()
+  const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.replace("/profile");
+    }
+  }, [loading, isAuthenticated, router]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -47,17 +55,19 @@ export default function SignUp() {
 
   const onSubmit = async (data: SignUpForm) => {
     try {
-      const result = await authAPI.signUp(data);
+      const result = await apiFetch("/api/auth/sign-up", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       if (result.success) {
         router.push("/sign-in");
         toast.success("Account created successfully");
       }
     } catch (error: unknown) {
-      // Generic error handling
       const message =
         error instanceof Error
           ? error.message
-          : "Login failed. Please try again.";
+          : "Sign-up failed. Please try again.";
 
       setError("root", { message });
       toast.error(message);

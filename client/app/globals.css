@@ -129,3 +129,6 @@
 button {
   cursor: pointer;
 }
+html::-webkit-scrollbar {
+  display: none;
+}

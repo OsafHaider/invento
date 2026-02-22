@@ -1,6 +1,6 @@
 // lib/stock-transaction-api.ts
 
-import { apiFetch } from "./fetch-api-wrapper";
+import { apiFetch } from "./api";
 
 const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export interface StockTransaction {

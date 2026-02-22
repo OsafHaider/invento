@@ -1,24 +1,11 @@
 "use client";
-import React, { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
-import { authAPI } from "@/lib/auth-api";
 
 export default function Home() {
   const { isAuthenticated, user } = useAuth();
-  // useEffect(() => {
-  //   const initAuth = async () => {
-  //     try {
-  //       const data = await authAPI.profile();
-  //       console.log(data);
-  //     } catch (err) {
-  //       localStorage.removeItem("accessToken");
-  //     }
-  //   };
-
-  //   initAuth();
-  // }, []);
+ 
   return (
     <main className="min-h-screen py-12 px-4">
       <div className="max-w-5xl mx-auto space-y-16">

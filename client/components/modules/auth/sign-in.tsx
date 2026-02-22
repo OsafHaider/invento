@@ -6,12 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/form-input";
-import { authAPI } from "@/lib/auth-api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { apiFetch } from "@/lib/api";
+import { setAccessToken } from "@/utils/token";
 
 // ---------------- Schema ----------------
 const signInSchema = z.object({
@@ -23,9 +23,15 @@ type SignInForm = z.infer<typeof signInSchema>;
 
 export default function SignIn() {
   const router = useRouter();
-  const { setUser, setIsAuthenticated } = useAuth();
+  const { isAuthenticated, loading, setUser } = useAuth();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.replace("/profile");
+    }
+  }, [loading, isAuthenticated, router]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -40,15 +46,22 @@ export default function SignIn() {
   });
 
   const onSubmit = async (data: SignInForm) => {
+    console.log("hi");
     try {
-      const result = await authAPI.signIn(data);
-      setUser(result.data.user);
-      setIsAuthenticated(true);
-
-      toast.success("Logged in successfully");
-      router.push("/profile");
+      const request = await apiFetch("/api/auth/sign-in", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (request.success) {
+        setAccessToken(request.data.accessToken);
+        toast.success("Logged in successfully");
+        const profile = await apiFetch("/api/auth/profile");
+        setUser(profile);
+        router.push("/profile");
+      } else {
+        toast.error("Login failed");
+      }
     } catch (error: unknown) {
-      // Generic error handling
       const message =
         error instanceof Error
           ? error.message

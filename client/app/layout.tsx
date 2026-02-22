@@ -1,8 +1,10 @@
+
 import type { Metadata } from "next";
 import Navbar from "@/components/navbar";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
+import { Toaster } from "sonner";
 
 const sharpFont = localFont({
   variable: "--font-sharp",
@@ -26,9 +28,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={sharpFont.className}>
         <AuthProvider>
-        
           <Navbar />
-          <main className="w-full overflow-hidden">{children}</main>
+          <main className="w-full overflow-hidden main-container">
+            {children}
+          </main>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

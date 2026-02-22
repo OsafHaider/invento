@@ -1,4 +1,5 @@
 import { apiFetch } from "./fetch-api-wrapper";
+
 const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export interface Product {
   _id: string;

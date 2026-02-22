@@ -1,94 +1,87 @@
 "use client";
 
-import { authAPI } from "@/lib/auth-api";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { setAccessToken, clearAccessToken } from "@/lib/token";
+import { apiFetch } from "@/lib/api";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useRouter } from "next/navigation";
 
+// 1. Define the User structure based on your data
 interface User {
   id: string;
-  name: string;
   email: string;
-  role: string;
+  name: string;
+  role: "user" | "admin"; // Use a union if there are specific roles
   createdAt: string;
+  updatedAt: string;
 }
 
+// 2. Define the Context shape
 interface AuthContextType {
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  loading: boolean;
   isAuthenticated: boolean;
-  isLoading: boolean;
-  setUser: (user: User | null) => void;
-  setIsAuthenticated: (value: boolean) => void;
   logout: () => Promise<void>;
 }
 
+// 3. Initialize with the type (defaults to undefined)
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router=useRouter()
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem("accessToken");
-      console.log(token);
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
+    const initializeAuth = async () => {
       try {
-        const data = await authAPI.profile();
-        console.log(data);
-        setUser(data.data.user);
-        setIsAuthenticated(true);
-      } catch (err) {
-        localStorage.removeItem("accessToken");
+        const data = await apiFetch("/api/auth/refresh", { method: "POST" });
+        setAccessToken(data.data.accessToken);
+
+        const profile = await apiFetch("/api/auth/profile");
+        setUser(profile.data.user);
+      } catch (error) {
+        clearAccessToken();
         setUser(null);
-        setIsAuthenticated(false);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    initAuth();
+    initializeAuth();
   }, []);
 
   const logout = async () => {
     try {
-      await authAPI.logout();
-    } catch (err) {
-      console.error("Logout failed:", err);
-    } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-      localStorage.removeItem("accessToken");
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Logout error:", error);
     }
+    clearAccessToken();
+    router.push("/sign-in");
+    setUser(null);
+   
   };
 
-  const value: AuthContextType = {
-    user,
-    isAuthenticated,
-    isLoading,
-    setUser,
-    setIsAuthenticated,
-    logout,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        loading,
+        isAuthenticated: !!user && !loading,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextType {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-
   if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
+    throw new Error("useAuth must be used inside AuthProvider");
   }
-
   return context;
-}
+};

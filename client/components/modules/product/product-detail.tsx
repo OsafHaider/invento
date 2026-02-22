@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { productAPI, Product } from "@/lib/product-api";
 import { StockManagement } from "@/components/modules/stock-transaction";
-import { apiFetch } from "@/lib/fetch-api-wrapper";
+import { apiFetch } from "@/lib/api";
 
 interface ProductDetailProps {
 

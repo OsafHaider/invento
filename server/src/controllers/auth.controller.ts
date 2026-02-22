@@ -111,6 +111,7 @@ export const signIn = async (
           role: user.role,
         },
       },
+      success:true,
       message: "Login successful",
     });
   } catch (error) {
@@ -166,14 +167,17 @@ export const logout = async (
 ): Promise<void> => {
   try {
     const token = req.cookies.refreshToken;
+    console.log(token)
     if (!token) return sendResponse({ res, statusCode: 200, data: null, message: "Already logged out" });
 
-    const refreshTokenDoc = await RefreshToken.findOneAndDelete({ token });
+    const refreshTokenDoc = await RefreshToken.findOneAndDelete({
+  token,
+});
     if (refreshTokenDoc) {
       await User.findByIdAndUpdate(refreshTokenDoc.userId, { $pull: { refreshToken: refreshTokenDoc._id } });
     }
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken",cookieOptions);
 
     sendResponse({ res, statusCode: 200, data: null, message: "Logged out successfully" });
   } catch (error) {

@@ -4,17 +4,13 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
+import Loading from "@/components/loading";
 
 const Profile = () => {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
-
-  if (isLoading) {
-    return (
-      <section className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Loading profile...</p>
-      </section>
-    );
+  const { user, isAuthenticated, loading, logout } = useAuth();
+  if (loading) {
+    return <Loading />;
   }
 
   if (!isAuthenticated || !user) {

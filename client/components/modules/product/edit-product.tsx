@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProductForm from "@/components/modules/product/product-form";
 import { productAPI, Product } from "@/lib/product-api";
-import { apiFetch } from "@/lib/fetch-api-wrapper";
+import { apiFetch } from "@/lib/api";
 
 interface EditProductProps {
   productId: string;
