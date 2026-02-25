@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { setAccessToken, clearAccessToken } from "@/lib/token";
 import { apiFetch } from "@/lib/api";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
 
 // 1. Define the User structure based on your data

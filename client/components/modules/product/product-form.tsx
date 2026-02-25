@@ -5,10 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/form-input";
-import { productAPI, Product } from "@/lib/product-api";
+import { Product } from "@/lib/product-api";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { fi } from "zod/locales";
 interface ProductFormProps {
   initialData?: Product;
   onSuccess?: () => void;
@@ -55,38 +57,28 @@ export default function ProductForm({
     const name = getValues("name");
     const category = getValues("category");
 
-    if (!name) {
-      toast.error("Enter product name first");
+    if (!name || !category) {
+      toast.error("Enter product name and category first");
       return;
     }
-
+    setAiLoading(true);
     try {
-      setAiLoading(true);
-
-      const res = await fetch(
-        `http://localhost:8080/api/products/ai-description`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({ name, category }),
-        },
-      );
-
-      if (!res.ok) throw new Error("AI request failed");
-
-      const data = await res.json();
-
-      setValue("description", data.data.description, {
-        shouldValidate: true,
+      const request = await apiFetch("/api/products/ai-description", {
+        method: "POST",
+        body: JSON.stringify({ name, category }),
       });
-
-      toast.success("AI description generated");
+      if (request.success) {
+        setValue("description", request.data.description, {
+          shouldValidate: true,
+        });
+        toast.success("AI description generated");
+      } else {
+        toast.error("Failed to generate description");
+      }
     } catch (error) {
-      toast.error("Failed to generate description");
-    } finally {
+      toast.error("Something went wrong");
+    }
+    finally {
       setAiLoading(false);
     }
   };
@@ -94,16 +86,30 @@ export default function ProductForm({
   // ---------------- SUBMIT ----------------
   const onSubmit = async (data: ProductFormValues) => {
     try {
-      if (initialData) {
-        await productAPI.updateProduct(initialData._id, data);
-        toast.success("Product updated successfully");
-      } else {
-        await productAPI.createProduct(data);
-        toast.success("Product created successfully");
+      const payload = {
+        ...data,
+        price: Number(data.price),
+      };
+      const request = initialData
+        ? await apiFetch(`/api/products/${initialData._id}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          })
+        : await apiFetch("/api/products", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+      if (request.success) {
+        toast.success(
+          initialData
+            ? "Product updated successfully"
+            : "Product created successfully",
+        );
         reset();
+        onSuccess?.();
+      } else {
+        toast.error(request.message || "Something went wrong");
       }
-
-      onSuccess?.();
     } catch (error) {
       toast.error("Something went wrong");
     }
@@ -166,8 +172,8 @@ export default function ProductForm({
           <Button
             type="button"
             variant="outline"
-            
             size="sm"
+            className="hover:bg-primary hover:text-white"
             onClick={handleGenerateDescription}
             disabled={aiLoading || isSubmitting}
           >

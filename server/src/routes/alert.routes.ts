@@ -6,5 +6,5 @@ export const alertRouter:Router = Router();
 
 alertRouter.get("/",authMiddleware, handleGetAlerts);
 
-alertRouter.patch("/:id/read", handleMarkAsRead);
+alertRouter.patch("/:id/mark-as-read", handleMarkAsRead);
 alertRouter.patch("/read-all", handleMarkAllAsRead);

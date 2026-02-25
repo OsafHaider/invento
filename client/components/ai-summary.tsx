@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,8 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-export default function AISummaryCard() {
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { apiFetch } from "@/lib/api";
+export default function AiSummary() {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -20,15 +21,12 @@ export default function AISummaryCard() {
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        "http://localhost:8080/api/dashboard/ai-summary",
-      );
-
-      setSummary(res.data.summary);
-      setOpen(true); 
-    } catch {
+      const data = await apiFetch("/api/dashboard/ai-summary");
+      setSummary(data.data.summary);
+      setOpen(true);
+    } catch (error) {
       setSummary("Failed to generate summary.");
-      setOpen(true); 
+      setOpen(true);
     } finally {
       setLoading(false);
     }
@@ -43,7 +41,7 @@ export default function AISummaryCard() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>AI Summary</DialogTitle>
             <DialogDescription>
@@ -51,8 +49,15 @@ export default function AISummaryCard() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 text-sm whitespace-pre-line text-gray-700">
-            {summary}
+          <div
+            className="prose prose-sm max-w-none 
+  prose-h2:mt-6 
+  prose-h2:border-b 
+  prose-h2:pb-2 
+  prose-h3:text-primary 
+  prose-strong:text-black"
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
           </div>
         </DialogContent>
       </Dialog>

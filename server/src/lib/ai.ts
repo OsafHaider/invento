@@ -42,20 +42,38 @@ export async function generateInventorySummary(data: any) {
       "http://localhost:11434/api/generate",
       {
         model: "llama3.1:latest",
-        prompt: `
+   prompt: `
 You are an inventory management assistant.
 
 Here is inventory data:
 ${JSON.stringify(data, null, 2)}
 
-Generate a concise executive summary.
-Include:
-- Total products
-- Low stock warning
-- General health
-- Restock recommendations
+Generate a professional executive summary in Markdown format.
 
-Keep it professional and clear.
+STRICT FORMATTING RULES:
+- Add a blank line after every heading
+- Use proper line breaks
+- Each section must start on a new line
+- Do NOT merge headings with text
+- Return valid Markdown only
+
+Use this structure:
+
+## Overview
+
+...
+
+## Stock Health
+
+...
+
+## Low Stock Alerts
+
+...
+
+## Restock Recommendations
+
+...
 `,
         stream: false,
       }

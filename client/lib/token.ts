@@ -9,6 +9,3 @@ export const getAccessToken = () => accessToken;
 export const clearAccessToken = () => {
   accessToken = null;
 };
-
-const token=getAccessToken()
-console.log(token)

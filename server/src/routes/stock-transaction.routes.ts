@@ -6,13 +6,15 @@ import {
 import { authMiddleware } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validation.js";
 import { createStockTransactionSchema } from "../schema/stock-transaction.schema.js";
+import { rateLimiterUserId } from "../middleware/rate-limiter/user-id.js";
 
 export const stockTransactionRouter: Router = Router();
 
 stockTransactionRouter.post(
   "/",
-  authMiddleware,
+  authMiddleware
+  , rateLimiterUserId,
   validateBody(createStockTransactionSchema),
   handleCreateStockTransaction,
 );
-stockTransactionRouter.get("/:id", authMiddleware, handleGetTransactionHistory);
+stockTransactionRouter.get("/:id", authMiddleware, rateLimiterUserId,handleGetTransactionHistory);

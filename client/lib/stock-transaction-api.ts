@@ -1,8 +1,3 @@
-// lib/stock-transaction-api.ts
-
-import { apiFetch } from "./api";
-
-const BACKEND_URL=process.env.NEXT_PUBLIC_API_URL
 export interface StockTransaction {
   _id: string;
   productId: string;
@@ -35,40 +30,4 @@ export interface CreateTransactionInput {
   quantity: number;
 }
 
-// ✅ simple reusable response handler
-async function handleResponse<T>(res: Response | undefined): Promise<T> {
-  if (!res) throw new Error("No response from server");
 
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Request failed");
-  }
-
-  return data as T;
-}
-
-export const stockTransactionAPI = {
-  async createTransaction(
-    payload: CreateTransactionInput
-  ): Promise<{ message: string; transaction: StockTransaction }> {
-    const res = await apiFetch(`${BACKEND_URL}/api/stock`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    return handleResponse(res);
-  },
-
-  async getTransactionHistory(
-    productId: string,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<TransactionHistory> {
-    const res = await apiFetch(
-      `${BACKEND_URL}/api/stock/${productId}?page=${page}&limit=${limit}`
-    );
-
-    return handleResponse(res);
-  },
-};
