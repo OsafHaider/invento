@@ -1,8 +1,7 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Bell } from "lucide-react"
-import { alertApi } from "@/lib/alert-api"
+import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -11,65 +10,65 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/api";
 
 interface Alert {
-  _id: string
-  message: string
-  productId: { name: string }
-  isRead?: boolean
+  _id: string;
+  message: string;
+  productId: { name: string };
+  isRead?: boolean;
 }
 
 export default function AlertsDropdown() {
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [loading, setLoading] = useState(true)
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAlerts()
-  }, [])
+    const fetchAlerts = async () => {
+      try {
+        setLoading(true);
+        const data = await apiFetch("/api/alerts");
+        setAlerts(data.data);
+      } catch (error) {
+        console.error("Failed to fetch alerts:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchAlerts = async () => {
-    try {
-      const data = await alertApi.getAlerts()
-      setAlerts(data.data?? [])
-    } catch (error) {
-      console.error("Failed to fetch alerts:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    fetchAlerts();
+  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await alertApi.markAsRead(id)
+      await apiFetch(`/api/alerts/${id}/mark-as-read`, { method: "PATCH" });
 
       // optimistic update
-      setAlerts(prev =>
-        prev.map(alert =>
-          alert._id === id ? { ...alert, isRead: true } : alert
-        )
-      )
+      setAlerts((prev) =>
+        prev.map((alert) =>
+          alert._id === id ? { ...alert, isRead: true } : alert,
+        ),
+      );
     } catch (error) {
-      console.error("Failed to mark as read:", error)
+      console.error("Failed to mark as read:", error);
     }
-  }
+  };
 
   const handleMarkAllAsRead = async () => {
     try {
-      await alertApi.markAllAsRead()
+      await apiFetch("/api/alerts/read-all", { method: "PATCH" });
 
-      setAlerts(prev =>
-        prev.map(alert => ({ ...alert, isRead: true }))
-      )
+      setAlerts((prev) => prev.map((alert) => ({ ...alert, isRead: true })));
     } catch (error) {
-      console.error("Failed to mark all as read:", error)
+      console.error("Failed to mark all as read:", error);
     }
-  }
+  };
 
-  const unreadCount = alerts.filter(a => !a.isRead).length
+  const unreadCount = alerts.filter((a) => !a.isRead).length;
 
   return (
     <DropdownMenu>
@@ -91,11 +90,7 @@ export default function AlertsDropdown() {
         <DropdownMenuLabel className="flex justify-between items-center">
           Low Stock Alerts
           {alerts.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleMarkAllAsRead}
-            >
+            <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead}>
               Mark all
             </Button>
           )}
@@ -103,19 +98,13 @@ export default function AlertsDropdown() {
 
         <DropdownMenuSeparator />
 
-        {loading && (
-          <DropdownMenuItem disabled>
-            Loading...
-          </DropdownMenuItem>
-        )}
+        {loading && <DropdownMenuItem disabled>Loading...</DropdownMenuItem>}
 
         {!loading && alerts.length === 0 && (
-          <DropdownMenuItem disabled>
-            No alerts
-          </DropdownMenuItem>
+          <DropdownMenuItem disabled>No alerts</DropdownMenuItem>
         )}
 
-        {alerts.map(alert => (
+        {alerts.map((alert) => (
           <DropdownMenuItem
             key={alert._id}
             onClick={() => handleMarkAsRead(alert._id)}
@@ -128,5 +117,5 @@ export default function AlertsDropdown() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

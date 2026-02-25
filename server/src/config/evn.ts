@@ -24,5 +24,6 @@ export const env = {
 
   REFRESH_TOKEN_SECRET: getEnvVariable("REFRESH_TOKEN_SECRET"),
   OLLAMA_URL: getEnvVariable("OLLAMA_URL"),
-  GROQ_API_KEY:getEnvVariable("GROQ_API_KEY")
+  GROQ_API_KEY:getEnvVariable("GROQ_API_KEY"),
+  REDIS_URL:getEnvVariable("REDIS_URL")
 };

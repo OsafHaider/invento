@@ -1,8 +1,8 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { productAPI, Product } from "@/lib/product-api";
+import {  Product } from "@/lib/product-api";
 import { StockManagement } from "@/components/modules/stock-transaction";
 import { apiFetch } from "@/lib/api";
 
@@ -16,24 +16,26 @@ const ProductDetail = ({ productId }: ProductDetailProps) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
-  React.useEffect(() => {
+  const fetchProduct = async () => {
+        try {
+          setIsLoading(true);
+          const request = await apiFetch(`/api/products/${productId}`);
+          if (request.success) {
+            setProduct(request.data);
+            setError("");
+          } else {
+            setError(request.message || "Failed to fetch product");
+          }
+        } catch (error) {
+          setError("Failed to fetch product");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+  useEffect(() => {
     fetchProduct();
   }, [productId]);
-
-    const fetchProduct = async () => {
-      try {
-        setIsLoading(true);
-       const req=await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${productId}`);
-       const res=await req.json();
-        const data = res.data;
-        setProduct(data);
-        setError("");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch product");
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
   if (isLoading) {
     return (

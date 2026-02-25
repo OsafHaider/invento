@@ -6,14 +6,14 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import AlertsDropdown from "./alert-dropdown";
-import AISummaryCard from "./ai-summary";
-import { useRouter } from "next/navigation";
+import AiSummary from "./ai-summary";
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const isAdmin = user?.role === "user";
   return (
     <nav className="border-b bg-background sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div className="max-w-7xl mx-autfo px-4 py-4 flex justify-between items-center">
         <Link
           href="/"
           className="text-2xl font-bold text-primary flex items-center gap-2"
@@ -32,8 +32,7 @@ const Navbar = () => {
                 Profile
               </Link>
             </div>
-
-            <AISummaryCard />
+            {isAdmin && <AiSummary />}
             <AlertsDropdown />
 
             <div className="flex items-center gap-3">

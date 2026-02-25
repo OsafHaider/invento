@@ -25,11 +25,11 @@ app.use(
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
-app.use("/api/stock", stockTransactionRouter);
+app.use("/api/stock-transactions", stockTransactionRouter);
 app.use("/api/alerts", alertRouter);
 app.use("/api/dashboard", dashboardRouter)
-app.use(globalErrorHandler)
 // Health check endpoint
 app.get("/health", (_, res: Response) => {
   res.status(200).json({ status: "ok", message: "Invento server is running" });
 });
+app.use(globalErrorHandler)

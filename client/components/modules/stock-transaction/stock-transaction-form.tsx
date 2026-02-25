@@ -5,12 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/form-input";
-import {
-  stockTransactionAPI,
-  StockTransaction,
-} from "@/lib/stock-transaction-api";
+import { StockTransaction } from "@/lib/stock-transaction-api";
 import { toast } from "sonner";
-import axios from "axios";
+import { apiFetch } from "@/lib/api";
 
 interface StockTransactionFormProps {
   productId: string;
@@ -25,8 +22,11 @@ export default function StockTransactionForm({
   // ---------------- Schema ----------------
   const schema = z
     .object({
-      type: z.enum(["IN", "OUT"], { message: "Transaction type is required or invalid" }),
-      quantity: z.number({ message: "Quantity must be a number" })
+      type: z.enum(["IN", "OUT"], {
+        message: "Transaction type is required or invalid",
+      }),
+      quantity: z
+        .number({ message: "Quantity must be a number" })
         .int("Quantity must be a whole number")
         .positive("Quantity must be greater than 0"),
     })
@@ -57,31 +57,28 @@ export default function StockTransactionForm({
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const result = await stockTransactionAPI.createTransaction({
-        productId,
-        type: data.type,
-        quantity: data.quantity,
+      const request = await apiFetch("/api/stock-transactions", {
+        method: "POST",
+        body: JSON.stringify({
+          productId,
+          type: data.type,
+          quantity: data.quantity,
+        }),
       });
-
-      toast.success("Stock transaction recorded");
-
-      reset({
-        type: "IN",
-        quantity: 0,
-      });
-
-      onSuccess?.(result.transaction);
-    } catch (error: unknown) {
-      let message = "Transaction failed";
-
-      if (axios.isAxiosError(error)) {
-        message =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          message;
-      } else if (error instanceof Error) {
-        message = error.message;
+      if (request.success) {
+        toast.success("Transaction recorded successfully");
+        reset();
+        if (onSuccess) {
+          onSuccess(request.data);
+        }
+      } else {
+        toast.error(request.message || "Failed to record transaction");
       }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to record transaction.";
 
       setError("root", { message });
       toast.error(message);

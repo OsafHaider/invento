@@ -1,9 +1,9 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ProductForm from "@/components/modules/product/product-form";
-import { productAPI, Product } from "@/lib/product-api";
+import { Product } from "@/lib/product-api";
 import { apiFetch } from "@/lib/api";
 
 interface EditProductProps {
@@ -16,25 +16,25 @@ const EditProduct = ({ productId }: EditProductProps) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
-  React.useEffect(() => {
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true);
+        const request = await apiFetch(`/api/products/${productId}`);
+        if (request.success) {
+          setProduct(request.data);
+          setError("");
+        } else {
+          setError(request.message || "Failed to fetch product");
+        }
+      } catch (error) {
+        setError("Failed to fetch product");
+      } finally {
+        setIsLoading(false);
+      }
+    };
     fetchProduct();
   }, [productId]);
-
-  const fetchProduct = async () => {
-    try {
-      setIsLoading(true);
-     const req=await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${productId}`);
-     const res=await req.json();
-     console.log(res)
-      const data = res.data;
-      setProduct(data);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch product");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -69,10 +69,7 @@ const EditProduct = ({ productId }: EditProductProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/products"
-          className="text-primary hover:underline text-sm"
-        >
+        <Link href="/products" className="text-primary hover:underline text-sm">
           ← Back to Products
         </Link>
         <h1 className="text-3xl font-bold text-foreground mt-4">

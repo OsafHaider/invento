@@ -13,7 +13,7 @@ services:
 
   ollama:
     build: ./ollama
-    container_name: ollama-new
+    container_name: ollama-invento
     restart: unless-stopped
     volumes:
     - ollama-data:/root/.ollama
